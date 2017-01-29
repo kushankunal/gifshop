@@ -60,10 +60,10 @@ app.post('/api/v1/add', function(req, res) {
   });
 });
 
-app.post('/api/v1/searchByUser', function(req, res) {
+app.get('/api/v1/searchByUser', function(req, res) {
   const results = [];
   // Get Data from http request
-  var data = {username: req.body.username}
+  var data = {username: req.query.username}
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
