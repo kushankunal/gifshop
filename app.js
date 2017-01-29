@@ -8,14 +8,11 @@ var bodyParser = require('body-parser');
 var index = require('./routes/index');
 var users = require('./routes/users');
 
-var redis = require('redis');
-var client = redis.createClient();
-
-client.on('connect', function() {
-    console.log('connected');
+app.get('/test', function(req, res) {
+	console.log('query', req.query)
+	console.log('body', req.body)
+	res.json(req.query || 'nothing')
 });
-
-var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
