@@ -35,6 +35,7 @@ app.post('/api/v1/add', function(req, res) {
   const results = [];
   // Grab data from http request
   var data = {gifname: req.body.gifname, username: req.body.username, targeturl: req.body.targeturl};
+  console.log("Adding ",data)
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
@@ -46,17 +47,8 @@ app.post('/api/v1/add', function(req, res) {
     // SQL Query > Insert Data
     client.query('INSERT INTO posts(gifname, username, targeturl) values($1, $2, $3)',
     [data.gifname, data.username, data.targeturl]);
-    // SQL Query > Select Data
-    var query = client.query('SELECT * FROM posts ORDER BY id ASC');
-    // Stream results back one row at a time
-    query.on('row', (row) => {
-      results.push(row);
-    });
-    // After all data is returned, close connection and return results
-    query.on('end', () => {
-      done();
-      return res.json(results);
-    });
+    done();
+    return res.json({});
   });
 });
 
@@ -64,6 +56,7 @@ app.get('/api/v1/searchByUser', function(req, res) {
   const results = [];
   // Get Data from http request
   var data = {username: req.query.username}
+  console.log("Searching for ",data)
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
@@ -76,9 +69,7 @@ app.get('/api/v1/searchByUser', function(req, res) {
     const query = client.query('SELECT * FROM posts WHERE username = $1 ORDER BY id ASC;',[data.username]);
     // Stream results back one row at a time
     query.on('row', (row) => {
-      console.log(row)
       var str = {gfyId:row.gifname}
-      console.log(str) 
       results.push({gifname:str,targeturl:row.targeturl})
     });
     // After all data is returned, close connection and return results
@@ -90,12 +81,10 @@ app.get('/api/v1/searchByUser', function(req, res) {
 });
 
 app.get('/api/v1/searchForPost', function(req, res) {
-  console.log("in method")
   const results = [];
-  global_rows=[];
   // Get Data from http request
   var data = {gifname: req.query.gifname}
-  console.log(data)
+  console.log("Searching for ",data)
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
@@ -108,15 +97,33 @@ app.get('/api/v1/searchForPost', function(req, res) {
     const query = client.query('SELECT * FROM posts WHERE gifname = $1;',[data.gifname]);
     // Stream results back one row at a time
     query.on('row', (row) => {
-      console.log(row)
       var str = {gfyId:row.gifname}
-      console.log(str)
       results.push({gifname: row.gifname,targeturl: row.targeturl})
     });
     query.on('end', () => {
        done();
        return res.json(results);
     });
+  });
+});
+
+app.delete('/api/v1/removePost', function(req, res) {
+  const results = [];
+  // Grab data from the URL parameters
+  const id = req.query.gifname;
+  console.log("Deleting", id)
+  // Get a Postgres client from the connection pool
+  pg.connect(connectionString, (err, client, done) => {
+    // Handle connection errors
+    if(err) {
+      done();
+      console.log(err);
+      return res.status(500).json({success: false, data: err});
+    }
+    // SQL Query > Delete Data
+    client.query('DELETE FROM posts WHERE gifname=$1', [id]);
+    done();
+    return res.json({});
   });
 });
 
