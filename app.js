@@ -16,19 +16,25 @@ const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/
 
 var app = express();
 
+const Gfycat = require('gfycat-sdk');
+ 
+var gfycat = new Gfycat({clientId: process.env.CLIENT_ID, clientSecret: process.env.CLIENT_SECRET});
+
+gfycat.authenticate().then(res => {
+  //Your app is now authenticated
+  console.log(gfycat)
+  console.log('token', gfycat.access_token, res.access_token);
+});
+
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 }));
 
 app.post('/api/v1/add', function(req, res) {
-  console.log("in post add")
-  console.log(req)
-  console.log(req.body)
   const results = [];
   // Grab data from http request
   var data = {gifname: req.body.gifname, username: req.body.username, targeturl: req.body.targeturl};
-  console.log(data)
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
@@ -37,7 +43,6 @@ app.post('/api/v1/add', function(req, res) {
       console.log(err);
       return res.status(500).json({success: false, data: err});
     }
-    console.log("got connection")
     // SQL Query > Insert Data
     client.query('INSERT INTO posts(gifname, username, targeturl) values($1, $2, $3)',
     [data.gifname, data.username, data.targeturl]);
@@ -46,6 +51,35 @@ app.post('/api/v1/add', function(req, res) {
     // Stream results back one row at a time
     query.on('row', (row) => {
       results.push(row);
+    });
+    // After all data is returned, close connection and return results
+    query.on('end', () => {
+      done();
+      return res.json(results);
+    });
+  });
+});
+
+app.post('/api/v1/searchByUser', function(req, res) {
+  const results = [];
+  // Get Data from http request
+  var data = {username: req.body.username}
+  // Get a Postgres client from the connection pool
+  pg.connect(connectionString, (err, client, done) => {
+    // Handle connection errors
+    if(err) {
+      done();
+      console.log(err);
+      return res.status(500).json({success: false, data: err});
+    }
+    // SQL Query > Select Data
+    const query = client.query('SELECT * FROM posts WHERE username = $1 ORDER BY id ASC;',[data.username]);
+    // Stream results back one row at a time
+    query.on('row', (row) => {
+      console.log(row)
+      var str = {gfyId:row.gifname}
+      console.log(str) 
+      results.push({gifname:str,targeturl:row.targeturl})
     });
     // After all data is returned, close connection and return results
     query.on('end', () => {
