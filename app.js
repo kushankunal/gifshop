@@ -89,6 +89,37 @@ app.get('/api/v1/searchByUser', function(req, res) {
   });
 });
 
+app.get('/api/v1/searchForPost', function(req, res) {
+  console.log("in method")
+  const results = [];
+  global_rows=[];
+  // Get Data from http request
+  var data = {gifname: req.query.gifname}
+  console.log(data)
+  // Get a Postgres client from the connection pool
+  pg.connect(connectionString, (err, client, done) => {
+    // Handle connection errors
+    if(err) {
+      done();
+      console.log(err);
+      return res.status(500).json({success: false, data: err});
+    }
+    // SQL Query > Select Data
+    const query = client.query('SELECT * FROM posts WHERE gifname = $1;',[data.gifname]);
+    // Stream results back one row at a time
+    query.on('row', (row) => {
+      console.log(row)
+      var str = {gfyId:row.gifname}
+      console.log(str)
+      results.push({gifname: row.gifname,targeturl: row.targeturl})
+    });
+    query.on('end', () => {
+       done();
+       return res.json(results);
+    });
+  });
+});
+
 app.get('/test', function(req, res) {
 	console.log('query', req.query)
 	console.log('body', req.body)
