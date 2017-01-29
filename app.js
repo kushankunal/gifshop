@@ -5,6 +5,8 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+var bodyParser = require('body-parser')
+
 var index = require('./routes/index');
 var users = require('./routes/users');
 
@@ -14,12 +16,19 @@ const connectionString = process.env.DATABASE_URL || 'postgres://localhost:5432/
 
 var app = express();
 
-router.post('/api/v1/add', (req, res, next) => {
-  console.warn("in post add")
+app.use( bodyParser.json() );       // to support JSON-encoded bodies
+app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+  extended: true
+}));
+
+app.post('/api/v1/add', function(req, res) {
+  console.log("in post add")
+  console.log(req)
+  console.log(req.body)
   const results = [];
   // Grab data from http request
-  var data = {gifname: req.body.gifname, username: req.body.username, targerurl: req.body.targeturl};
-  console.warn(data)
+  var data = {gifname: req.body.gifname, username: req.body.username, targeturl: req.body.targeturl};
+  console.log(data)
   // Get a Postgres client from the connection pool
   pg.connect(connectionString, (err, client, done) => {
     // Handle connection errors
@@ -28,7 +37,7 @@ router.post('/api/v1/add', (req, res, next) => {
       console.log(err);
       return res.status(500).json({success: false, data: err});
     }
-    console.warn("got connection")
+    console.log("got connection")
     // SQL Query > Insert Data
     client.query('INSERT INTO posts(gifname, username, targeturl) values($1, $2, $3)',
     [data.gifname, data.username, data.targeturl]);
